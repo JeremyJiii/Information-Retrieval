@@ -1,0 +1,8 @@
+计算Score：
+根据Query中的word找到indexer中的documents。计算各document的weight向量(TF和IDF结合，并正则化)
+与Query的weight向量计算similairty
+
+Calculate Score：
+According to the words in the Query, we can find the document from the Indexer.json.
+Then calculate the weight vector of each document and nomalize it.
+Calculate the cosine similarity with the Query vector.

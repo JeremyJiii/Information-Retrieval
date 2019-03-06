@@ -5,6 +5,7 @@ import argparse
 import sys
 import os
 import json
+import pandas as pd
 import heapq
 from sklearn import feature_extraction
 from sklearn.feature_extraction.text import TfidfTransformer
@@ -14,6 +15,7 @@ from collections import Counter
 
 data_dir = "Data/"
 spliter = re.compile(r'[^0-9a-zA-Z]+', re.S)   # Reg that replace all char except number and english
+cacheStopWords = nltk.corpus.stopwords.words("english") #dictionary of stop words
 counter = Counter()
 keys = ['Paragraph','Title','Span','Others']  # content tags that need to be extracted
 
@@ -38,7 +40,8 @@ def merge_text(page):
             continue
         for sentence in page[k]:
             sentence = re.sub(spliter, " ", sentence)
-            content_str += sentence + " "
+            if sentence not in cacheStopWords: 
+            	content_str += sentence + " "
     return content_str
 
 '''
@@ -64,14 +67,31 @@ structure (temporal data, not final index) would be :
     word1: [(page_id, tfidf),(page_id, tfidf)...],
     word2: []
 }
+weight_matrix.csv
+structure {
+		word1 word2 word3
+	doc1
+	doc2	  tf-idf
+	doc3
+	.
+}
+find the document name from  page_id_list
 '''
 def construct():
     dictionary = {}
-    vectorizer = CountVectorizer()
+
+    vectorizer = CountVectorizer(analyzer='word', stop_words='english')
     transformer = TfidfTransformer()
-    tfidf = transformer.fit_transform(vectorizer.fit_transform(page_content_list))
+    X = vectorizer.fit_transform(page_content_list)
+
+    tfidf = transformer.fit_transform(X)
     word = vectorizer.get_feature_names() # already sorted
     weight = tfidf.toarray()
+
+    #write the weight matrix in cvs
+    pd_data = pd.DataFrame(weight,index=page_id_list,columns=word)
+    pd_data.to_csv('weight_matrix.csv')
+
     for i in range(len(weight)):
         # print(u"-------Page ",i,u" word list------")
         for j in range(len(word)):
@@ -108,16 +128,17 @@ def formalize(dictionary):
 
 def sort(postings):  
     return sorted(postings,key = lambda pair: pair[1], reverse=True) 
-
+'''
 def output(d, outfile="dictionary.json"):
     with open(outfile,'w') as f:
         json.dump(d, f)
+'''
 
 def indexer():
     handle_input()  # read all the raw data, and merge content as a string
     dictionary = construct()  # build inverted index
     formalize(dictionary)
-    output(dictionary)
+    #output(dictionary)
     
 if __name__ == '__main__':
     args = sys.argv
